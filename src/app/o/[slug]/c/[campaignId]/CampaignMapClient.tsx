@@ -73,9 +73,9 @@ export default function CampaignMapClient({ campaign, pins, org, membership }: P
               type: "Polygon",
               // outer ring = world, inner ring = boundary hole
               coordinates: [worldRing, boundaryRing],
-            },
+            } as GeoJSON.Geometry,
             properties: {},
-          },
+          } as GeoJSON.Feature,
           {
             style: {
               fillColor: "#888888",

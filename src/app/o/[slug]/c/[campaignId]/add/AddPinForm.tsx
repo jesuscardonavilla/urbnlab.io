@@ -104,9 +104,9 @@ export default function AddPinForm({ campaign, org, userId }: Props) {
             geometry: {
               type: "Polygon",
               coordinates: [worldRing, boundaryRing],
-            },
+            } as GeoJSON.Geometry,
             properties: {},
-          },
+          } as GeoJSON.Feature,
           {
             style: {
               fillColor: "#888888",
