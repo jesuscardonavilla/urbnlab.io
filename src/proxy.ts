@@ -30,8 +30,12 @@ export async function proxy(request: NextRequest) {
     }
   );
 
-  // Refresh session
-  await supabase.auth.getUser();
+  // Refresh session — wrapped in try/catch so a Supabase error never crashes the proxy
+  try {
+    await supabase.auth.getUser();
+  } catch {
+    // ignore — session refresh failed, app still loads
+  }
 
   return supabaseResponse;
 }
