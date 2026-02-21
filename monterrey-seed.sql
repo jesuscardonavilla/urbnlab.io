@@ -1,63 +1,79 @@
 -- ============================================================
--- MONTERREY ORG, BOUNDARY, AND CAMPAIGN
+-- MONTERREY CAMPAIGN SETUP
 -- ============================================================
--- Run this entire script in one go in Supabase SQL Editor
+-- This script will use the existing Monterrey org if it exists,
+-- or create a new one if it doesn't.
 
--- 1. Create Monterrey Organization (with upsert)
-INSERT INTO orgs (id, name, slug)
-VALUES (
-  'a2000000-0000-0000-0000-000000000001',
-  'Monterrey',
-  'monterrey'
-)
-ON CONFLICT (slug)
-DO UPDATE SET
-  id = EXCLUDED.id,
-  name = EXCLUDED.name;
+-- 1. Get or create Monterrey org ID
+DO $$
+DECLARE
+  monterrey_org_id UUID;
+  monterrey_boundary_id UUID := 'b2000000-0000-0000-0000-000000000001';
+  monterrey_campaign_id UUID := 'c2000000-0000-0000-0000-000000000001';
+BEGIN
+  -- Get existing Monterrey org ID or create new one
+  INSERT INTO orgs (id, name, slug)
+  VALUES (
+    'a2000000-0000-0000-0000-000000000001',
+    'Monterrey',
+    'monterrey'
+  )
+  ON CONFLICT (slug)
+  DO UPDATE SET name = EXCLUDED.name
+  RETURNING id INTO monterrey_org_id;
 
--- 2. Create Monterrey Boundary (Downtown Monterrey bounding box)
-INSERT INTO boundaries (id, org_id, name, geog, center_lat, center_lng, default_zoom)
-VALUES (
-  'b2000000-0000-0000-0000-000000000001',
-  'a2000000-0000-0000-0000-000000000001',
-  'Centro de Monterrey',
-  ST_GeographyFromText('SRID=4326;POLYGON((-100.35 25.66, -100.29 25.66, -100.29 25.71, -100.35 25.71, -100.35 25.66))'),
-  25.6866,
-  -100.3161,
-  13
-)
-ON CONFLICT (id)
-DO UPDATE SET
-  org_id = EXCLUDED.org_id,
-  name = EXCLUDED.name,
-  geog = EXCLUDED.geog,
-  center_lat = EXCLUDED.center_lat,
-  center_lng = EXCLUDED.center_lng,
-  default_zoom = EXCLUDED.default_zoom;
+  -- If the above didn't return an ID, fetch it
+  IF monterrey_org_id IS NULL THEN
+    SELECT id INTO monterrey_org_id FROM orgs WHERE slug = 'monterrey';
+  END IF;
 
--- 3. Back-fill geog_json for Monterrey boundary
-UPDATE boundaries
-SET geog_json = ST_AsGeoJSON(geog)::text
-WHERE id = 'b2000000-0000-0000-0000-000000000001' AND geog_json IS NULL;
+  -- Create or update boundary
+  INSERT INTO boundaries (id, org_id, name, geog, center_lat, center_lng, default_zoom)
+  VALUES (
+    monterrey_boundary_id,
+    monterrey_org_id,
+    'Centro de Monterrey',
+    ST_GeographyFromText('SRID=4326;POLYGON((-100.35 25.66, -100.29 25.66, -100.29 25.71, -100.35 25.71, -100.35 25.66))'),
+    25.6866,
+    -100.3161,
+    13
+  )
+  ON CONFLICT (id)
+  DO UPDATE SET
+    org_id = EXCLUDED.org_id,
+    name = EXCLUDED.name,
+    geog = EXCLUDED.geog,
+    center_lat = EXCLUDED.center_lat,
+    center_lng = EXCLUDED.center_lng,
+    default_zoom = EXCLUDED.default_zoom;
 
--- 4. Create Monterrey Campaign
-INSERT INTO campaigns (id, org_id, boundary_id, title, description, start_at, end_at, enabled_categories)
-VALUES (
-  'c2000000-0000-0000-0000-000000000001',
-  'a2000000-0000-0000-0000-000000000001',
-  'b2000000-0000-0000-0000-000000000001',
-  'Centro Urbano',
-  'Identifica problemas de movilidad en Monterrey para mejorar la infraestructura del centro urbano.',
-  now() - INTERVAL '5 days',
-  now() + INTERVAL '52 days',
-  ARRAY['crosswalk_needed','bike_gap','sidewalk_ada','speeding_near_miss','tourism_pressure','climate_stress']
-)
-ON CONFLICT (id)
-DO UPDATE SET
-  org_id = EXCLUDED.org_id,
-  boundary_id = EXCLUDED.boundary_id,
-  title = EXCLUDED.title,
-  description = EXCLUDED.description,
-  start_at = EXCLUDED.start_at,
-  end_at = EXCLUDED.end_at,
-  enabled_categories = EXCLUDED.enabled_categories;
+  -- Back-fill geog_json
+  UPDATE boundaries
+  SET geog_json = ST_AsGeoJSON(geog)::text
+  WHERE id = monterrey_boundary_id AND geog_json IS NULL;
+
+  -- Create or update campaign
+  INSERT INTO campaigns (id, org_id, boundary_id, title, description, start_at, end_at, enabled_categories)
+  VALUES (
+    monterrey_campaign_id,
+    monterrey_org_id,
+    monterrey_boundary_id,
+    'Centro Urbano',
+    'Identifica problemas de movilidad en Monterrey para mejorar la infraestructura del centro urbano.',
+    now() - INTERVAL '5 days',
+    now() + INTERVAL '52 days',
+    ARRAY['crosswalk_needed','bike_gap','sidewalk_ada','speeding_near_miss','tourism_pressure','climate_stress']
+  )
+  ON CONFLICT (id)
+  DO UPDATE SET
+    org_id = EXCLUDED.org_id,
+    boundary_id = EXCLUDED.boundary_id,
+    title = EXCLUDED.title,
+    description = EXCLUDED.description,
+    start_at = EXCLUDED.start_at,
+    end_at = EXCLUDED.end_at,
+    enabled_categories = EXCLUDED.enabled_categories;
+
+  -- Output the org ID being used
+  RAISE NOTICE 'Using Monterrey org ID: %', monterrey_org_id;
+END $$;
