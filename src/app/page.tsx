@@ -15,7 +15,7 @@ export default function Home() {
           Join minimalist urban mobility campaigns to shape your city's future today. Simple, fast, and impactful.
         </p>
         <Link
-          href="/o/traverse-city"
+          href="/campaigns"
           className="inline-flex items-center gap-2 px-8 py-4 bg-[#06B6D4] border-2 border-[#1E1E1E] rounded-[16px] font-bold text-[#1E1E1E] hover:bg-[#0891B2] transition-all text-lg"
         >
           EXPLORE CAMPAIGNS

@@ -268,162 +268,267 @@ export default function AddPinForm({ campaign, org, userId }: Props) {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6">
-      <h1 className="text-2xl font-bold mb-1">Add a pin</h1>
-      <p className="text-sm text-[#6B6B6B] mb-6">
-        Click the map to drop your pin, then fill in the details below.
-      </p>
+    <div className="min-h-screen">
+      {/* Header */}
+      <div className="bg-white border-b-2 border-[#1E1E1E] px-6 py-4">
+        <div className="max-w-2xl mx-auto flex items-center justify-between">
+          <button
+            onClick={() => router.back()}
+            className="flex items-center justify-center w-10 h-10 hover:bg-[#F6F0EA] rounded-full transition-colors"
+          >
+            <span className="text-2xl">×</span>
+          </button>
+          <h1 className="text-xl font-bold">Add Mobility Issue</h1>
+          <div className="w-10 h-10 flex items-center justify-center">
+            <span className="text-xl text-[#06B6D4]">?</span>
+          </div>
+        </div>
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Map */}
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Location - Large Map at Top */}
         <div>
-          <div
-            ref={mapContainer}
-            className="w-full rounded-[16px] border-2 border-[#1E1E1E] overflow-hidden"
-            style={{ height: "400px" }}
-          />
-          {lat && lng ? (
-            <p className="text-xs text-[#6B6B6B] mt-2">
-              📍 {lat.toFixed(5)}, {lng.toFixed(5)}
-              {!insideBoundary && (
-                <span className="text-red-500 ml-2 font-medium">
-                  ⚠ Outside boundary — move pin inside the outlined area
-                </span>
-              )}
-            </p>
-          ) : (
-            <p className="text-xs text-[#6B6B6B] mt-2">
-              Click anywhere inside the teal boundary outline to place your pin. You can drag it to adjust.
-            </p>
+          <div className="relative border-2 border-[#1E1E1E] overflow-hidden">
+            <div
+              ref={mapContainer}
+              className="w-full"
+              style={{ height: "400px" }}
+            />
+            {!lat || !lng ? (
+              <div className="absolute inset-0 bg-black/10 flex items-center justify-center pointer-events-none">
+                <div className="bg-white px-6 py-3 rounded-full border-2 border-[#1E1E1E] font-bold flex items-center gap-2">
+                  <span className="text-[#06B6D4] text-xl">📍</span>
+                  Click map to place pin
+                </div>
+              </div>
+            ) : null}
+          </div>
+          {lat && lng && (
+            <div className="bg-white border-2 border-[#1E1E1E] border-t-0 px-4 py-3">
+              <p className="text-sm text-[#1E1E1E]">
+                📍 Pin placed at: {lat.toFixed(5)}, {lng.toFixed(5)}
+                {!insideBoundary && (
+                  <span className="text-red-600 ml-2 font-bold">
+                    ⚠ Move pin inside campaign boundary
+                  </span>
+                )}
+              </p>
+            </div>
           )}
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="max-w-2xl mx-auto px-6 space-y-6">
+          {/* Issue Title */}
           <div>
-            <label className="block text-sm font-medium mb-1">Title *</label>
+            <label className="block text-xs font-bold uppercase tracking-wide text-[#1E1E1E] mb-2">
+              ISSUE TITLE
+            </label>
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
               maxLength={120}
-              placeholder="Short description of the issue"
-              className="w-full border-2 border-[#1E1E1E] rounded-[12px] px-3 py-2 text-sm outline-none focus:border-[#2DD4BF]"
+              placeholder="e.g., Blocked sidewalk on 5th Ave"
+              className="w-full border-2 border-[#E5E5E5] rounded-[12px] px-4 py-3 text-base outline-none focus:border-[#06B6D4] placeholder:text-[#9CA3AF]"
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Description *</label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              required
-              rows={3}
-              placeholder="What's the issue? What should be done?"
-              className="w-full border-2 border-[#1E1E1E] rounded-[12px] px-3 py-2 text-sm outline-none focus:border-[#2DD4BF] resize-none"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium mb-1">Category</label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value as PinCategory)}
-                className="w-full border-2 border-[#1E1E1E] rounded-[12px] px-3 py-2 text-sm bg-white outline-none"
-              >
-                {CATEGORY_GROUPS.map((group) => {
-                  const enabled = campaign.enabled_categories ?? (Object.keys(CATEGORY_LABELS) as PinCategory[]);
-                  const options = group.categories.filter((c) => enabled.includes(c));
-                  if (options.length === 0) return null;
-                  return (
-                    <optgroup key={group.label} label={group.label}>
-                      {options.map((c) => (
-                        <option key={c} value={c}>{CATEGORY_LABELS[c]}</option>
-                      ))}
-                    </optgroup>
-                  );
-                })}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Severity ({severity}/5)
-              </label>
-              <input
-                type="range"
-                min={1}
-                max={5}
-                value={severity}
-                onChange={(e) => setSeverity(Number(e.target.value))}
-                className="w-full mt-2 accent-[#2DD4BF]"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">When does it occur?</label>
+        {/* Category */}
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wide text-[#1E1E1E] mb-2">
+            CATEGORY
+          </label>
+          <div className="relative">
             <select
-              value={timePattern}
-              onChange={(e) => setTimePattern(e.target.value as TimePattern)}
-              className="w-full border-2 border-[#1E1E1E] rounded-[12px] px-3 py-2 text-sm bg-white outline-none"
+              value={category}
+              onChange={(e) => setCategory(e.target.value as PinCategory)}
+              className="w-full border-2 border-[#E5E5E5] rounded-[12px] px-4 py-3 text-base bg-white outline-none focus:border-[#06B6D4] appearance-none"
             >
-              {Object.entries(TIME_PATTERN_LABELS).map(([k, v]) => (
-                <option key={k} value={k}>{v}</option>
-              ))}
+              <option value="">Select mobility type</option>
+              {CATEGORY_GROUPS.map((group) => {
+                const enabled = campaign.enabled_categories ?? (Object.keys(CATEGORY_LABELS) as PinCategory[]);
+                const options = group.categories.filter((c) => enabled.includes(c));
+                if (options.length === 0) return null;
+                return (
+                  <optgroup key={group.label} label={group.label}>
+                    {options.map((c) => (
+                      <option key={c} value={c}>{CATEGORY_LABELS[c]}</option>
+                    ))}
+                  </optgroup>
+                );
+              })}
             </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Who is impacted?</label>
-            <div className="flex flex-wrap gap-1.5">
-              {(Object.entries(IMPACTED_GROUP_LABELS) as [ImpactedGroup, string][]).map(
-                ([k, v]) => (
-                  <button
-                    key={k}
-                    type="button"
-                    onClick={() => toggleGroup(k)}
-                    className={`text-xs px-2 py-1 rounded-[12px] border-2 transition-all ${
-                      impactedGroups.includes(k)
-                        ? "bg-[#2DD4BF] border-[#1E1E1E]"
-                        : "bg-white border-[#1E1E1E] text-[#6B6B6B]"
-                    }`}
-                  >
-                    {v}
-                  </button>
-                )
-              )}
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#6B6B6B]">
+              ▼
             </div>
           </div>
+        </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Photo (optional)</label>
-            <input type="file" accept="image/*" onChange={handlePhotoChange} className="text-sm" />
-            {photoPreview && (
-              <img
-                src={photoPreview}
-                alt="Preview"
-                className="mt-2 rounded-[12px] border-2 border-[#1E1E1E] max-h-32 object-cover"
-              />
+        {/* Severity */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-xs font-bold uppercase tracking-wide text-[#1E1E1E]">
+              SEVERITY
+            </label>
+            <span className="text-sm font-bold text-[#06B6D4]">
+              {severity} {severity === 1 ? "Star" : "Stars"}
+            </span>
+          </div>
+          <div className="relative">
+            <input
+              type="range"
+              min={1}
+              max={5}
+              value={severity}
+              onChange={(e) => setSeverity(Number(e.target.value))}
+              className="w-full h-2 bg-[#E5E5E5] rounded-full appearance-none cursor-pointer"
+              style={{
+                background: `linear-gradient(to right, #06B6D4 0%, #06B6D4 ${((severity - 1) / 4) * 100}%, #E5E5E5 ${((severity - 1) / 4) * 100}%, #E5E5E5 100%)`
+              }}
+            />
+          </div>
+          <div className="flex justify-between text-xs text-[#6B6B6B] mt-2">
+            <span>Minor</span>
+            <span>Moderate</span>
+            <span>Critical</span>
+          </div>
+        </div>
+
+        {/* Time Pattern */}
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wide text-[#1E1E1E] mb-2">
+            TIME PATTERN
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {(Object.entries(TIME_PATTERN_LABELS) as [TimePattern, string][]).map(([k, v]) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => setTimePattern(k)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                  timePattern === k
+                    ? "bg-[#06B6D4] text-white"
+                    : "bg-white text-[#1E1E1E] border-2 border-[#E5E5E5]"
+                }`}
+              >
+                {v}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Impacted Groups */}
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wide text-[#1E1E1E] mb-2">
+            IMPACTED GROUPS
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {(Object.entries(IMPACTED_GROUP_LABELS) as [ImpactedGroup, string][]).map(([k, v]) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => toggleGroup(k)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                  impactedGroups.includes(k)
+                    ? "bg-[#06B6D4] text-white"
+                    : "bg-white text-[#1E1E1E] border-2 border-[#E5E5E5]"
+                }`}
+              >
+                {v}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Description */}
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wide text-[#1E1E1E] mb-2">
+            DESCRIPTION
+          </label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            required
+            rows={5}
+            placeholder="Provide details about the issue..."
+            className="w-full border-2 border-[#E5E5E5] rounded-[12px] px-4 py-3 text-base outline-none focus:border-[#06B6D4] resize-none placeholder:text-[#9CA3AF]"
+          />
+        </div>
+
+        {/* Upload Evidence */}
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wide text-[#1E1E1E] mb-2">
+            UPLOAD EVIDENCE
+          </label>
+          <div className="relative">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handlePhotoChange}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+              id="photo-upload"
+            />
+            {photoPreview ? (
+              <div className="relative border-2 border-[#E5E5E5] rounded-[12px] overflow-hidden">
+                <img
+                  src={photoPreview}
+                  alt="Preview"
+                  className="w-full h-48 object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPhoto(null);
+                    setPhotoPreview(null);
+                  }}
+                  className="absolute top-2 right-2 w-8 h-8 bg-white border-2 border-[#1E1E1E] rounded-full flex items-center justify-center font-bold"
+                >
+                  ×
+                </button>
+              </div>
+            ) : (
+              <label
+                htmlFor="photo-upload"
+                className="block border-2 border-dashed border-[#E5E5E5] rounded-[12px] py-12 text-center cursor-pointer hover:border-[#06B6D4] transition-colors"
+              >
+                <div className="flex flex-col items-center gap-2">
+                  <svg
+                    width="48"
+                    height="48"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#9CA3AF"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                    <circle cx="12" cy="13" r="4" />
+                  </svg>
+                  <p className="text-sm text-[#9CA3AF]">Tap to upload or take a photo</p>
+                </div>
+              </label>
             )}
           </div>
+        </div>
 
-          {error && (
-            <p className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-[12px] px-3 py-2">
-              {error}
-            </p>
-          )}
-
-          <div className="flex gap-3">
-            <Button type="submit" disabled={loading} className="flex-1">
-              {loading ? "Submitting…" : "Submit pin"}
-            </Button>
-            <Button type="button" variant="secondary" onClick={() => router.back()}>
-              Cancel
-            </Button>
+        {/* Error */}
+        {error && (
+          <div className="bg-red-50 border-2 border-red-200 rounded-[12px] px-4 py-3 text-sm text-red-600">
+            {error}
           </div>
-        </form>
+        )}
+
+        {/* Submit Button */}
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full py-4 bg-[#06B6D4] border-2 border-[#1E1E1E] rounded-[16px] font-bold text-lg text-[#1E1E1E] hover:bg-[#0891B2] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {loading ? "Submitting Issue..." : "Submit Issue"}
+        </button>
       </div>
+      </form>
     </div>
   );
 }

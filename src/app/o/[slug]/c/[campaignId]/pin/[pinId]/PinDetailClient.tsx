@@ -114,159 +114,202 @@ export default function PinDetailClient({
 
   const categoryColor = CATEGORY_COLORS[pin.category] ?? "#6B6B6B";
 
+  // Determine impact level based on votes
+  const getImpactLevel = () => {
+    if (voteCount >= 50) return "HIGH VOLUME";
+    if (voteCount >= 20) return "MEDIUM VOLUME";
+    return "LOW VOLUME";
+  };
+
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-1 text-xs text-[#6B6B6B] mb-4">
-        <Link href={`/o/${org.slug}`} className="hover:underline">{org.name}</Link>
-        <span>/</span>
-        <Link href={`/o/${org.slug}/c/${campaignId}`} className="hover:underline">Map</Link>
-        <span>/</span>
-        <span className="text-[#1E1E1E] font-medium truncate">{pin.title}</span>
+    <div className="min-h-screen" style={{ backgroundColor: "#F6F0EA" }}>
+      {/* Back button header */}
+      <div className="bg-white border-b-2 border-[#1E1E1E] px-6 py-4">
+        <button
+          onClick={() => router.push(`/o/${org.slug}/c/${campaignId}`)}
+          className="flex items-center gap-2 text-[#1E1E1E] font-medium hover:text-[#6B6B6B]"
+        >
+          <span className="text-xl">←</span>
+          <span>Back to map</span>
+        </button>
       </div>
 
-      {/* Pin card */}
-      <div className="bg-white border-2 border-[#1E1E1E] rounded-[22px] p-6 mb-4">
-        {/* Category indicator */}
-        <div className="flex items-center gap-2 mb-3">
-          <div
-            className="w-3 h-3 rounded-full"
-            style={{ backgroundColor: categoryColor }}
-          />
-          <span className="text-sm font-medium text-[#6B6B6B]">
-            {CATEGORY_LABELS[pin.category]}
-          </span>
-          <StatusBadge status={pin.status} />
-        </div>
-
-        <h1 className="text-2xl font-bold mb-3">{pin.title}</h1>
-        <p className="text-[#6B6B6B] mb-4">{pin.description}</p>
-
-        {/* Photo */}
-        {pin.photo_url && (
+      {/* Photo with status badge */}
+      {pin.photo_url && (
+        <div className="relative w-full">
           <img
             src={pin.photo_url}
-            alt="Pin photo"
-            className="rounded-[12px] border-2 border-[#1E1E1E] max-h-60 object-cover mb-4 w-full"
+            alt={pin.title}
+            className="w-full h-80 object-cover"
           />
-        )}
+          <div className="absolute top-4 right-4">
+            <StatusBadge status={pin.status} />
+          </div>
+        </div>
+      )}
 
-        {/* Metadata grid */}
-        <div className="grid grid-cols-2 gap-3 text-sm mb-4">
-          <div>
-            <span className="text-xs text-[#6B6B6B] uppercase tracking-wide">Severity</span>
-            <div className="flex gap-1 mt-1">
-              {[1, 2, 3, 4, 5].map((n) => (
-                <div
-                  key={n}
-                  className={`w-5 h-5 rounded border-2 border-[#1E1E1E] ${
-                    n <= pin.severity ? "bg-[#2DD4BF]" : "bg-white"
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
-          <div>
-            <span className="text-xs text-[#6B6B6B] uppercase tracking-wide">Timing</span>
-            <p className="mt-1 font-medium">{TIME_PATTERN_LABELS[pin.time_pattern]}</p>
-          </div>
-          {pin.impacted_groups.length > 0 && (
-            <div className="col-span-2">
-              <span className="text-xs text-[#6B6B6B] uppercase tracking-wide">Impacted groups</span>
-              <div className="flex flex-wrap gap-1 mt-1">
-                {pin.impacted_groups.map((g) => (
+      <div className="max-w-2xl mx-auto px-4 py-6">
+        {/* Category pills */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          <span className="px-3 py-1 bg-[#1E1E1E] text-white text-xs font-bold uppercase rounded-full">
+            {CATEGORY_LABELS[pin.category]}
+          </span>
+          {pin.impacted_groups.slice(0, 2).map((g) => (
+            <span
+              key={g}
+              className="px-3 py-1 bg-[#1E1E1E] text-white text-xs font-bold uppercase rounded-full"
+            >
+              {IMPACTED_GROUP_LABELS[g]}
+            </span>
+          ))}
+        </div>
+
+        {/* Title */}
+        <h1 className="text-3xl font-bold mb-6" style={{ color: "#1E1E1E" }}>
+          {pin.title}
+        </h1>
+
+        {/* Severity and Impact */}
+        <div className="bg-white border-2 border-[#1E1E1E] rounded-[16px] p-6 mb-4">
+          <div className="grid grid-cols-2 gap-6">
+            <div>
+              <span className="text-xs text-[#6B6B6B] uppercase tracking-wide font-bold mb-2 block">
+                Severity
+              </span>
+              <div className="flex gap-1">
+                {[1, 2, 3, 4, 5].map((n) => (
                   <span
-                    key={g}
-                    className="text-xs px-2 py-0.5 bg-[#BFF3EC] rounded-full"
+                    key={n}
+                    className="text-2xl"
+                    style={{ color: n <= pin.severity ? "#F59E0B" : "#E5E5E5" }}
                   >
-                    {IMPACTED_GROUP_LABELS[g]}
+                    ★
                   </span>
                 ))}
               </div>
             </div>
-          )}
+            <div>
+              <span className="text-xs text-[#6B6B6B] uppercase tracking-wide font-bold mb-2 block">
+                Impact
+              </span>
+              <p className="font-bold text-lg" style={{ color: "#1E1E1E" }}>
+                {getImpactLevel()}
+              </p>
+            </div>
+          </div>
         </div>
 
-        {/* Location */}
-        <p className="text-xs text-[#6B6B6B] mb-4">
-          📍 {pin.lat.toFixed(5)}, {pin.lng.toFixed(5)} ·{" "}
-          Reported {new Date(pin.created_at).toLocaleDateString()}
-        </p>
-
-        {/* Vote */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleVote}
-            disabled={voteLoading}
-            className={`flex items-center gap-2 px-4 py-2 border-2 border-[#1E1E1E] rounded-[16px] font-medium transition-all text-sm ${
-              hasVoted
-                ? "bg-[#2DD4BF] text-[#1E1E1E]"
-                : "bg-white text-[#1E1E1E] hover:bg-[#F6F0EA]"
-            }`}
-          >
-            ▲ {hasVoted ? "Seconded" : "Second this"} · {voteCount}
-          </button>
-          <Link
-            href={`/o/${org.slug}/c/${campaignId}`}
-            className="text-sm text-[#6B6B6B] hover:underline"
-          >
-            ← Back to map
-          </Link>
-        </div>
+        {/* SECOND THIS ISSUE button */}
+        <button
+          onClick={handleVote}
+          disabled={voteLoading}
+          className={`w-full py-4 border-2 border-[#1E1E1E] rounded-[16px] font-bold text-lg transition-all mb-4 ${
+            hasVoted
+              ? "bg-[#059669] text-white"
+              : "bg-[#06B6D4] text-[#1E1E1E] hover:bg-[#0891B2]"
+          }`}
+        >
+          {hasVoted ? `✓ ISSUE SECONDED (${voteCount})` : `SECOND THIS ISSUE (${voteCount})`}
+        </button>
 
         {error && (
-          <p className="text-red-600 text-sm mt-3">{error}</p>
+          <p className="text-red-600 text-sm mb-4 text-center">{error}</p>
         )}
-      </div>
 
-      {/* Comments */}
-      <div className="bg-white border-2 border-[#1E1E1E] rounded-[22px] p-6">
-        <h2 className="font-bold text-lg mb-4">
-          Discussion ({comments.length})
-        </h2>
+        {/* COMMUNITY REPORT */}
+        <div className="bg-white border-2 border-[#1E1E1E] rounded-[16px] p-6 mb-4">
+          <h2 className="text-[#6B6B6B] font-bold text-sm uppercase tracking-wider mb-3">
+            COMMUNITY REPORT
+          </h2>
+          <p className="text-[#1E1E1E] leading-relaxed mb-4">
+            {pin.description}
+          </p>
 
-        {comments.length === 0 ? (
-          <p className="text-[#6B6B6B] text-sm mb-4">No comments yet. Start the conversation!</p>
-        ) : (
-          <div className="space-y-3 mb-6">
-            {comments.map((c) => (
-              <div key={c.id} className="border-2 border-[#E5E5E5] rounded-[12px] p-3">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs font-medium">
-                    {c.profile?.email?.split("@")[0] ?? "Anonymous"}
-                  </span>
-                  <span className="text-xs text-[#6B6B6B]">
-                    {new Date(c.created_at).toLocaleDateString()}
-                  </span>
+          {/* Metadata */}
+          <div className="border-t-2 border-[#E5E5E5] pt-4 space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-[#6B6B6B]">Timing Pattern</span>
+              <span className="font-medium">{TIME_PATTERN_LABELS[pin.time_pattern]}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-[#6B6B6B]">Reported</span>
+              <span className="font-medium">{new Date(pin.created_at).toLocaleDateString()}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-[#6B6B6B]">Location</span>
+              <span className="font-medium text-xs">
+                {pin.lat.toFixed(5)}, {pin.lng.toFixed(5)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* COMMUNITY CONTEXT */}
+        <div className="bg-white border-2 border-[#1E1E1E] rounded-[16px] p-6">
+          <h2 className="text-[#6B6B6B] font-bold text-sm uppercase tracking-wider mb-4">
+            COMMUNITY CONTEXT ({comments.length})
+          </h2>
+
+          {comments.length === 0 ? (
+            <p className="text-[#6B6B6B] text-sm mb-6 text-center py-8">
+              No comments yet. Be the first to add context!
+            </p>
+          ) : (
+            <div className="space-y-4 mb-6">
+              {comments.map((c) => (
+                <div key={c.id} className="flex gap-3">
+                  {/* Avatar placeholder */}
+                  <div className="w-10 h-10 rounded-full bg-[#06B6D4] border-2 border-[#1E1E1E] flex items-center justify-center flex-shrink-0 font-bold text-white">
+                    {c.profile?.email?.charAt(0).toUpperCase() ?? "?"}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-bold text-sm">
+                        {c.profile?.email?.split("@")[0] ?? "Anonymous"}
+                      </span>
+                      <span className="text-xs text-[#6B6B6B]">
+                        {new Date(c.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <p className="text-sm text-[#1E1E1E] leading-relaxed">
+                      {c.body}
+                    </p>
+                  </div>
                 </div>
-                <p className="text-sm">{c.body}</p>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
 
-        {/* Add comment */}
-        {membership ? (
-          <form onSubmit={handleComment} className="space-y-2">
-            <textarea
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              placeholder="Add a comment…"
-              rows={3}
-              className="w-full border-2 border-[#1E1E1E] rounded-[12px] px-3 py-2 text-sm outline-none focus:border-[#2DD4BF] resize-none"
-            />
-            <Button type="submit" disabled={commentLoading || !commentText.trim()}>
-              {commentLoading ? "Posting…" : "Post comment"}
-            </Button>
-          </form>
-        ) : (
-          <div className="text-sm text-[#6B6B6B]">
-            <Link href={`/auth/login?next=/o/${org.slug}/c/${campaignId}/pin/${pin.id}`} className="text-[#2DD4BF] hover:underline">
-              Sign in
-            </Link>{" "}
-            and join the community to comment.
-          </div>
-        )}
+          {/* Add context input */}
+          {membership ? (
+            <form onSubmit={handleComment} className="space-y-3">
+              <textarea
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                placeholder="Add more context..."
+                rows={3}
+                className="w-full border-2 border-[#1E1E1E] rounded-[12px] px-4 py-3 text-sm outline-none focus:border-[#06B6D4] resize-none"
+              />
+              <button
+                type="submit"
+                disabled={commentLoading || !commentText.trim()}
+                className="w-full py-3 bg-[#06B6D4] border-2 border-[#1E1E1E] rounded-[12px] font-bold text-[#1E1E1E] hover:bg-[#0891B2] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {commentLoading ? "Posting..." : "POST CONTEXT"}
+              </button>
+            </form>
+          ) : (
+            <div className="text-sm text-center text-[#6B6B6B] py-4">
+              <Link
+                href={`/auth/login?next=/o/${org.slug}/c/${campaignId}/pin/${pin.id}`}
+                className="text-[#06B6D4] hover:underline font-medium"
+              >
+                Sign in
+              </Link>{" "}
+              and join the community to add context.
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

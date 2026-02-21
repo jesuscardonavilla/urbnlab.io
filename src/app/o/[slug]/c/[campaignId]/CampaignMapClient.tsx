@@ -2,10 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { Map as LeafletMap, Marker as LeafletMarker } from "leaflet";
 import type { Campaign, Pin, PinCategory } from "@/types";
-import { CATEGORY_COLORS, CATEGORY_LABELS, STATUS_LABELS } from "@/types";
-import { StatusBadge } from "@/components/ui/Badge";
+import { CATEGORY_COLORS, CATEGORY_LABELS } from "@/types";
 
 interface Props {
   campaign: Campaign;
@@ -18,21 +18,20 @@ interface Props {
 const TC = { lat: 44.7631, lng: -85.6206, zoom: 12 };
 
 export default function CampaignMapClient({ campaign, pins, org, membership }: Props) {
+  const router = useRouter();
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const markersRef = useRef<LeafletMarker[]>([]);
 
   const [selectedPin, setSelectedPin] = useState<Pin | null>(null);
   const [filterCategory, setFilterCategory] = useState<PinCategory | "all">("all");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
   const [mapReady, setMapReady] = useState(false);
+  const [categoriesOpen, setCategoriesOpen] = useState(true);
 
   const boundary = campaign.boundary;
-  const boundaryGeoJSON = boundary?.geog_json
-    ? JSON.parse(boundary.geog_json)
-    : null;
+  const boundaryGeoJSON = boundary?.geog_json ? JSON.parse(boundary.geog_json) : null;
 
-  // Init map once
+  // Init map
   useEffect(() => {
     if (!mapContainer.current) return;
     let cancelled = false;
@@ -47,20 +46,15 @@ export default function CampaignMapClient({ campaign, pins, org, membership }: P
         zoomControl: false,
       });
 
-      L.control.zoom({ position: "topright" }).addTo(map);
+      L.control.zoom({ position: "topleft" }).addTo(map);
 
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution:
-          '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        attribution: '© OpenStreetMap',
         maxZoom: 19,
       }).addTo(map);
 
       if (boundaryGeoJSON) {
-        // Use a plain geoJSON layer just to compute bounds
         const boundsLayer = L.geoJSON(boundaryGeoJSON);
-
-        // Inverse mask: world rectangle with the boundary as a hole.
-        // Everything OUTSIDE the boundary gets a gray overlay.
         const worldRing: [number, number][] = [
           [-180, -89.99], [180, -89.99], [180, 89.99], [-180, 89.99], [-180, -89.99],
         ];
@@ -69,44 +63,21 @@ export default function CampaignMapClient({ campaign, pins, org, membership }: P
         L.geoJSON(
           {
             type: "Feature",
-            geometry: {
-              type: "Polygon",
-              // outer ring = world, inner ring = boundary hole
-              coordinates: [worldRing, boundaryRing],
-            } as GeoJSON.Geometry,
+            geometry: { type: "Polygon", coordinates: [worldRing, boundaryRing] } as GeoJSON.Geometry,
             properties: {},
           } as GeoJSON.Feature,
           {
-            style: {
-              fillColor: "#888888",
-              fillOpacity: 0.45,
-              stroke: false,
-              weight: 0,
-            },
+            style: { fillColor: "#888888", fillOpacity: 0.45, stroke: false, weight: 0 },
           }
         ).addTo(map);
 
-        // Dashed boundary outline
         L.geoJSON(boundaryGeoJSON, {
-          style: {
-            color: "#444444",
-            weight: 2.5,
-            dashArray: "8 5",
-            fill: false,
-          },
+          style: { color: "#444444", weight: 2.5, dashArray: "8 5", fill: false },
         }).addTo(map);
 
         try {
           const bounds = boundsLayer.getBounds();
           map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
-          const sw = bounds.getSouthWest();
-          const ne = bounds.getNorthEast();
-          const padLat = (ne.lat - sw.lat) * 0.3;
-          const padLng = (ne.lng - sw.lng) * 0.3;
-          map.setMaxBounds([
-            [sw.lat - padLat, sw.lng - padLng],
-            [ne.lat + padLat, ne.lng + padLng],
-          ]);
         } catch {}
       }
 
@@ -120,9 +91,9 @@ export default function CampaignMapClient({ campaign, pins, org, membership }: P
       mapRef.current?.remove();
       mapRef.current = null;
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // eslint-disable-line
 
-  // Update markers when filters or pins change
+  // Update markers
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
     let cancelled = false;
@@ -137,7 +108,6 @@ export default function CampaignMapClient({ campaign, pins, org, membership }: P
 
       const filtered = pins.filter((p) => {
         if (filterCategory !== "all" && p.category !== filterCategory) return false;
-        if (filterStatus !== "all" && p.status !== filterStatus) return false;
         return true;
       });
 
@@ -176,193 +146,172 @@ export default function CampaignMapClient({ campaign, pins, org, membership }: P
     }
 
     updateMarkers();
-    return () => {
-      cancelled = true;
-    };
-  }, [pins, mapReady, filterCategory, filterStatus]);
+    return () => { cancelled = true; };
+  }, [pins, mapReady, filterCategory]);
 
   const filteredPins = pins.filter((p) => {
     if (filterCategory !== "all" && p.category !== filterCategory) return false;
-    if (filterStatus !== "all" && p.status !== filterStatus) return false;
     return true;
-  });
+  }).slice(0, 4); // Show recent 4
 
   const now = new Date();
   const campaignActive =
     new Date(campaign.start_at) <= now && now <= new Date(campaign.end_at);
 
   return (
-    <div
-      className="flex-1 flex flex-col md:flex-row overflow-hidden"
-      style={{ height: "calc(100vh - 56px)" }}
-    >
-      {/* Sidebar */}
-      <div className="w-full md:w-[340px] flex-shrink-0 flex flex-col overflow-hidden border-r-2 border-[#1E1E1E] bg-white">
-        {/* Campaign header */}
-        <div className="p-4 border-b-2 border-[#1E1E1E]">
-          <div className="flex items-center gap-1 mb-1 text-xs text-[#6B6B6B]">
-            <Link href={`/o/${org.slug}`} className="hover:underline">
-              {org.name}
-            </Link>
-            <span>/</span>
-            <span className="truncate">{campaign.title}</span>
+    <div className="relative w-full" style={{ height: "calc(100vh - 56px)" }}>
+      {/* Header */}
+      <div className="absolute top-0 left-0 right-0 bg-white border-b-2 border-[#1E1E1E] px-6 py-4 z-[1000]">
+        <div className="flex items-center justify-between max-w-7xl mx-auto">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.push(`/o/${org.slug}`)}
+              className="w-10 h-10 border-2 border-[#1E1E1E] rounded-full flex items-center justify-center hover:bg-[#F6F0EA]"
+            >
+              ←
+            </button>
+            <div>
+              <h1 className="font-bold text-xl">{campaign.title}</h1>
+              <p className="text-sm text-[#6B6B6B]">{campaign.description}</p>
+            </div>
           </div>
-          <h1 className="font-bold text-lg leading-tight">{campaign.title}</h1>
-          {campaign.description && (
-            <p className="text-xs text-[#6B6B6B] mt-1">{campaign.description}</p>
-          )}
-          <div className="flex items-center gap-2 mt-2">
-            <span
-              className={`text-xs px-2 py-0.5 rounded-full border font-medium ${
-                campaignActive
-                  ? "bg-[#BFF3EC] border-[#2DD4BF] text-[#1E1E1E]"
-                  : "bg-gray-100 border-gray-300 text-gray-500"
+        </div>
+      </div>
+
+      {/* Map */}
+      <div ref={mapContainer} className="absolute inset-0" />
+
+      {/* Category Filter Panel */}
+      <div className="absolute top-24 right-6 bg-white border-2 border-[#1E1E1E] rounded-[16px] overflow-hidden z-[1000] w-72">
+        <button
+          onClick={() => setCategoriesOpen(!categoriesOpen)}
+          className="w-full px-4 py-3 font-bold text-sm text-left border-b-2 border-[#1E1E1E] hover:bg-[#F6F0EA] flex items-center justify-between"
+        >
+          <span className="text-[#6B6B6B] uppercase tracking-wider">CATEGORIES</span>
+          <span>{categoriesOpen ? "−" : "+"}</span>
+        </button>
+        {categoriesOpen && (
+          <div className="p-2">
+            <button
+              onClick={() => setFilterCategory("all")}
+              className={`w-full text-left px-3 py-2 rounded-[12px] text-sm font-medium mb-1 flex items-center gap-2 ${
+                filterCategory === "all"
+                  ? "bg-[#06B6D4] text-[#1E1E1E]"
+                  : "hover:bg-[#F6F0EA]"
               }`}
             >
-              {campaignActive ? "Active" : "Ended"}
-            </span>
-            <span className="text-xs text-[#6B6B6B]">
-              {new Date(campaign.start_at).toLocaleDateString()} –{" "}
-              {new Date(campaign.end_at).toLocaleDateString()}
-            </span>
+              All Issues
+            </button>
+            {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => setFilterCategory(key as PinCategory)}
+                className={`w-full text-left px-3 py-2 rounded-[12px] text-sm font-medium mb-1 flex items-center gap-2 ${
+                  filterCategory === key
+                    ? "bg-[#06B6D4] text-[#1E1E1E]"
+                    : "hover:bg-[#F6F0EA]"
+                }`}
+              >
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: CATEGORY_COLORS[key as PinCategory] }}
+                />
+                {label}
+              </button>
+            ))}
           </div>
-        </div>
+        )}
+      </div>
 
-        {/* Actions */}
-        <div className="p-3 border-b-2 border-[#1E1E1E] flex gap-2">
-          {campaignActive &&
-            (membership ? (
-              <Link
-                href={`/o/${org.slug}/c/${campaign.id}/add`}
-                className="flex-1 text-center text-sm py-2 bg-[#2DD4BF] border-2 border-[#1E1E1E] rounded-[16px] font-medium hover:bg-[#1E1E1E] hover:text-white transition-all"
-              >
-                + Add pin
-              </Link>
-            ) : (
-              <Link
-                href={`/auth/login?next=/o/${org.slug}/c/${campaign.id}`}
-                className="flex-1 text-center text-sm py-2 bg-white border-2 border-[#1E1E1E] rounded-[16px] hover:bg-[#F6F0EA] transition-all"
-              >
-                Sign in to add pin
-              </Link>
-            ))}
+      {/* Recent Reports Panel */}
+      <div className="absolute top-24 left-6 bg-white border-2 border-[#1E1E1E] rounded-[16px] overflow-hidden z-[1000] w-80">
+        <div className="px-4 py-3 border-b-2 border-[#1E1E1E]">
+          <span className="text-[#6B6B6B] font-bold text-sm uppercase tracking-wider">
+            RECENT REPORTS
+          </span>
         </div>
-
-        {/* Filters */}
-        <div className="p-3 border-b-2 border-[#1E1E1E] flex flex-wrap gap-1.5">
-          <select
-            value={filterCategory}
-            onChange={(e) =>
-              setFilterCategory(e.target.value as PinCategory | "all")
-            }
-            className="text-xs border-2 border-[#1E1E1E] rounded-[12px] px-2 py-1 bg-white outline-none"
-          >
-            <option value="all">All categories</option>
-            {Object.entries(CATEGORY_LABELS).map(([k, v]) => (
-              <option key={k} value={k}>
-                {v}
-              </option>
-            ))}
-          </select>
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="text-xs border-2 border-[#1E1E1E] rounded-[12px] px-2 py-1 bg-white outline-none"
-          >
-            <option value="all">All statuses</option>
-            {Object.entries(STATUS_LABELS).map(([k, v]) => (
-              <option key={k} value={k}>
-                {v}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Pin list */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="max-h-96 overflow-y-auto">
           {filteredPins.length === 0 ? (
             <div className="p-6 text-center text-[#6B6B6B] text-sm">
-              No pins yet. Be the first to add one!
+              No reports yet
             </div>
           ) : (
             filteredPins.map((pin) => (
-              <div
+              <button
                 key={pin.id}
                 onClick={() => {
                   setSelectedPin(pin);
                   mapRef.current?.flyTo([pin.lat, pin.lng], 15);
                 }}
-                className={`px-4 py-3 border-b border-[#E5E5E5] cursor-pointer hover:bg-[#F6F0EA] transition-colors ${
-                  selectedPin?.id === pin.id ? "bg-[#F6F0EA]" : ""
-                }`}
+                className="w-full px-4 py-3 border-b border-[#E5E5E5] hover:bg-[#F6F0EA] text-left flex items-center gap-3"
               >
-                <div className="flex items-start gap-2">
-                  <div
-                    className="w-3 h-3 rounded-full mt-1 flex-shrink-0"
-                    style={{ backgroundColor: CATEGORY_COLORS[pin.category] }}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{pin.title}</p>
-                    <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                      <span className="text-xs text-[#6B6B6B]">
-                        {CATEGORY_LABELS[pin.category]}
-                      </span>
-                      <StatusBadge status={pin.status} />
-                    </div>
-                  </div>
-                  <span className="text-xs text-[#6B6B6B] flex-shrink-0">
-                    ▲ {pin.vote_count ?? 0}
-                  </span>
-                </div>
-              </div>
+                <div
+                  className="w-4 h-4 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: CATEGORY_COLORS[pin.category] }}
+                />
+                <span className="font-medium text-sm truncate">{pin.title}</span>
+              </button>
             ))
           )}
         </div>
       </div>
 
-      {/* Map area */}
-      <div className="flex-1 relative">
-        <div ref={mapContainer} className="absolute inset-0" />
+      {/* MAP AN ISSUE Button */}
+      {campaignActive && membership && (
+        <Link
+          href={`/o/${org.slug}/c/${campaign.id}/add`}
+          className="absolute bottom-8 right-6 z-[1000] px-8 py-4 bg-[#06B6D4] border-2 border-[#1E1E1E] rounded-[16px] font-bold text-[#1E1E1E] hover:bg-[#0891B2] transition-all text-lg flex items-center gap-2 shadow-lg"
+        >
+          <span className="text-2xl">+</span>
+          MAP AN ISSUE
+        </Link>
+      )}
 
-        {/* Selected pin card */}
-        {selectedPin && (
-          <div className="absolute bottom-0 left-0 right-0 bg-white border-t-2 border-[#1E1E1E] p-4 max-h-[45%] overflow-y-auto md:absolute md:top-4 md:right-4 md:left-auto md:bottom-auto md:w-80 md:rounded-[16px] md:border-2 md:max-h-[calc(100%-2rem)] z-[1000]">
-            <div className="flex items-center justify-between mb-2">
-              <div
-                className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: CATEGORY_COLORS[selectedPin.category] }}
-              />
-              <button
-                onClick={() => setSelectedPin(null)}
-                className="text-[#6B6B6B] hover:text-[#1E1E1E] text-xl leading-none ml-auto"
-              >
-                ×
-              </button>
+      {/* Pin Detail Popup */}
+      {selectedPin && (
+        <div className="absolute bottom-0 left-0 right-0 z-[1001] bg-white border-t-2 border-[#1E1E1E] shadow-lg">
+          <div className="max-w-4xl mx-auto p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <div
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: CATEGORY_COLORS[selectedPin.category] }}
+                  />
+                  <span className="text-sm font-medium text-[#6B6B6B]">
+                    {CATEGORY_LABELS[selectedPin.category]}
+                  </span>
+                </div>
+                <h3 className="text-xl font-bold mb-2">{selectedPin.title}</h3>
+                <p className="text-sm text-[#6B6B6B] line-clamp-2">
+                  {selectedPin.description}
+                </p>
+              </div>
+              {selectedPin.photo_url && (
+                <img
+                  src={selectedPin.photo_url}
+                  alt={selectedPin.title}
+                  className="w-24 h-24 rounded-[12px] border-2 border-[#1E1E1E] object-cover ml-4"
+                />
+              )}
             </div>
-            <h3 className="font-bold mb-1">{selectedPin.title}</h3>
-            <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <span className="text-xs text-[#6B6B6B]">
-                {CATEGORY_LABELS[selectedPin.category]}
-              </span>
-              <StatusBadge status={selectedPin.status} />
-            </div>
-            <p className="text-sm text-[#6B6B6B] mb-3 line-clamp-3">
-              {selectedPin.description}
-            </p>
             <div className="flex items-center gap-3">
-              <span className="text-sm font-medium">
-                ▲ {selectedPin.vote_count ?? 0} votes
-              </span>
               <Link
                 href={`/o/${org.slug}/c/${campaign.id}/pin/${selectedPin.id}`}
-                className="text-sm px-3 py-1.5 bg-[#2DD4BF] border-2 border-[#1E1E1E] rounded-[12px] font-medium hover:bg-[#1E1E1E] hover:text-white transition-all"
+                className="flex-1 text-center px-6 py-3 bg-[#06B6D4] border-2 border-[#1E1E1E] rounded-[16px] font-bold text-[#1E1E1E] hover:bg-[#0891B2] transition-all"
               >
-                View details →
+                VIEW DETAILS
               </Link>
+              <button
+                onClick={() => setSelectedPin(null)}
+                className="px-6 py-3 border-2 border-[#1E1E1E] rounded-[16px] font-bold text-[#1E1E1E] hover:bg-[#F6F0EA] transition-all"
+              >
+                CLOSE
+              </button>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
