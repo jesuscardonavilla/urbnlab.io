@@ -1,14 +1,19 @@
 -- ============================================================
 -- MONTERREY ORG, BOUNDARY, AND CAMPAIGN
 -- ============================================================
+-- Run this entire script in one go in Supabase SQL Editor
 
--- 1. Create Monterrey Organization
+-- 1. Create Monterrey Organization (with upsert)
 INSERT INTO orgs (id, name, slug)
 VALUES (
   'a2000000-0000-0000-0000-000000000001',
   'Monterrey',
   'monterrey'
-) ON CONFLICT (slug) DO NOTHING;
+)
+ON CONFLICT (slug)
+DO UPDATE SET
+  id = EXCLUDED.id,
+  name = EXCLUDED.name;
 
 -- 2. Create Monterrey Boundary (Downtown Monterrey bounding box)
 INSERT INTO boundaries (id, org_id, name, geog, center_lat, center_lng, default_zoom)
@@ -20,10 +25,20 @@ VALUES (
   25.6866,
   -100.3161,
   13
-) ON CONFLICT DO NOTHING;
+)
+ON CONFLICT (id)
+DO UPDATE SET
+  org_id = EXCLUDED.org_id,
+  name = EXCLUDED.name,
+  geog = EXCLUDED.geog,
+  center_lat = EXCLUDED.center_lat,
+  center_lng = EXCLUDED.center_lng,
+  default_zoom = EXCLUDED.default_zoom;
 
 -- 3. Back-fill geog_json for Monterrey boundary
-UPDATE boundaries SET geog_json = ST_AsGeoJSON(geog)::text WHERE geog_json IS NULL;
+UPDATE boundaries
+SET geog_json = ST_AsGeoJSON(geog)::text
+WHERE id = 'b2000000-0000-0000-0000-000000000001' AND geog_json IS NULL;
 
 -- 4. Create Monterrey Campaign
 INSERT INTO campaigns (id, org_id, boundary_id, title, description, start_at, end_at, enabled_categories)
@@ -36,4 +51,13 @@ VALUES (
   now() - INTERVAL '5 days',
   now() + INTERVAL '52 days',
   ARRAY['crosswalk_needed','bike_gap','sidewalk_ada','speeding_near_miss','tourism_pressure','climate_stress']
-) ON CONFLICT DO NOTHING;
+)
+ON CONFLICT (id)
+DO UPDATE SET
+  org_id = EXCLUDED.org_id,
+  boundary_id = EXCLUDED.boundary_id,
+  title = EXCLUDED.title,
+  description = EXCLUDED.description,
+  start_at = EXCLUDED.start_at,
+  end_at = EXCLUDED.end_at,
+  enabled_categories = EXCLUDED.enabled_categories;
