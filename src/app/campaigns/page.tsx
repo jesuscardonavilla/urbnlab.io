@@ -18,6 +18,17 @@ const campaigns = [
     daysLeft: 45,
     supporters: 23,
   },
+  {
+    id: "c2000000-0000-0000-0000-000000000001",
+    org: "monterrey",
+    city: "Monterrey, Mexico",
+    title: "Centro Urbano",
+    description: "Identifica problemas de movilidad en Monterrey para mejorar la infraestructura del centro urbano.",
+    image: "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=800&h=400&fit=crop",
+    status: "active" as TabType,
+    daysLeft: 52,
+    supporters: 8,
+  },
 ];
 
 export default function CampaignsPage() {
