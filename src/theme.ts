@@ -1,14 +1,24 @@
-// theme.ts
+// UrbnLab Brand Theme
 export const theme = {
   colors: {
-    bg: "#F6F0EA",
-    surface: "#FFFFFF",
-    ink: "#1E1E1E",
-    muted: "#6B6B6B",
-    accent: "#2DD4BF",
-    accentSoft: "#BFF3EC",
+    // Primary
+    urbanBlue: "#2563EB",
+    communityGreen: "#059669",
+    civicOrange: "#F59E0B",
+
+    // Neutrals
+    bg: "#F6F0EA",          // Warm neutral background
+    surface: "#FFFFFF",     // White surface
+    surfaceGray: "#F3F4F6", // Light gray surface
+    ink: "#1E1E1E",         // Charcoal text
+    muted: "#6B6B6B",       // Medium gray text
+
+    // Legacy (for compatibility)
+    accent: "#2563EB",      // Urban blue
+    accentSoft: "#DBEAFE", // Light blue
   },
   radius: {
+    sm: 12,
     md: 16,
     lg: 22,
     xl: 28,

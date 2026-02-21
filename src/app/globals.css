@@ -2,18 +2,27 @@
 @import "leaflet/dist/leaflet.css";
 
 :root {
+  /* UrbnLab Brand Colors */
+  --urban-blue: #2563EB;
+  --community-green: #059669;
+  --civic-orange: #F59E0B;
+
+  /* Neutrals */
   --bg: #F6F0EA;
   --surface: #FFFFFF;
+  --surface-gray: #F3F4F6;
   --ink: #1E1E1E;
   --muted: #6B6B6B;
-  --accent: #2DD4BF;
-  --accent-soft: #BFF3EC;
+
+  /* Legacy */
+  --accent: #2563EB;
+  --accent-soft: #DBEAFE;
 }
 
 body {
   background-color: var(--bg);
   color: var(--ink);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 /* Leaflet overrides */

@@ -7,67 +7,73 @@ export default function Home() {
       <Navbar />
 
       {/* Hero */}
-      <section className="max-w-4xl mx-auto px-4 py-20 text-center">
-        <div className="inline-block bg-[#BFF3EC] border-2 border-[#1E1E1E] rounded-full px-4 py-1 text-sm font-medium mb-6">
-          B2B SaaS for cities & counties
-        </div>
-        <h1 className="text-5xl font-bold tracking-tight mb-4" style={{ color: "#1E1E1E" }}>
-          Urban issues,<br />solved together.
+      <section className="max-w-3xl mx-auto px-6 py-16 md:py-24">
+        <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-6" style={{ color: "#1E1E1E", lineHeight: 1.1 }}>
+          Better cities, timed to perfection.
         </h1>
-        <p className="text-lg text-[#6B6B6B] max-w-xl mx-auto mb-8">
-          UrbnLab lets residents drop map pins on real issues — broken sidewalks,
-          dangerous crossings, climate stressors — and lets city admins track,
-          moderate, and act on them.
+        <p className="text-lg md:text-xl text-[#1E1E1E] max-w-2xl mb-10">
+          Join minimalist urban mobility campaigns to shape your city's future today. Simple, fast, and impactful.
         </p>
-        <div className="flex items-center justify-center gap-4 flex-wrap">
-          <Link
-            href="/o/traverse-city"
-            className="px-6 py-3 bg-[#2DD4BF] border-2 border-[#1E1E1E] rounded-[22px] font-medium text-[#1E1E1E] hover:bg-[#1E1E1E] hover:text-white transition-all"
-          >
-            View demo → Traverse City
-          </Link>
-          <Link
-            href="/auth/login"
-            className="px-6 py-3 bg-white border-2 border-[#1E1E1E] rounded-[22px] font-medium text-[#1E1E1E] hover:bg-[#F6F0EA] transition-all"
-          >
-            Sign in
-          </Link>
+        <Link
+          href="/o/traverse-city"
+          className="inline-flex items-center gap-2 px-8 py-4 bg-[#06B6D4] border-2 border-[#1E1E1E] rounded-[16px] font-bold text-[#1E1E1E] hover:bg-[#0891B2] transition-all text-lg"
+        >
+          EXPLORE CAMPAIGNS
+          <span>→</span>
+        </Link>
+      </section>
+
+      {/* Mission */}
+      <section className="max-w-3xl mx-auto px-6 mb-16">
+        <div className="bg-white border-2 border-[#1E1E1E] rounded-[16px] p-8 md:p-10">
+          <div className="text-[#06B6D4] font-bold text-sm mb-4 tracking-wider">
+            OUR MISSION
+          </div>
+          <p className="text-2xl md:text-3xl font-bold" style={{ color: "#1E1E1E", lineHeight: 1.3 }}>
+            We believe urban mobility should be agile. We facilitate time-bound, hyper-focused improvements that transform neighborhoods in weeks.
+          </p>
         </div>
       </section>
 
-      {/* Feature grid */}
-      <section className="max-w-4xl mx-auto px-4 pb-20 grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {[
-          {
-            icon: "📍",
-            title: "Geo-pinned issues",
-            desc: "Residents drop pins inside your defined boundary. Only valid locations accepted.",
-          },
-          {
-            icon: "🗳️",
-            title: "Upvotes & discussion",
-            desc: "Community members second issues and discuss in threaded comments.",
-          },
-          {
-            icon: "🏛️",
-            title: "Admin dashboard",
-            desc: "Moderate, merge duplicates, set status, and export data to CSV.",
-          },
-        ].map((f) => (
-          <div
-            key={f.title}
-            className="bg-white border-2 border-[#1E1E1E] rounded-[22px] p-6"
-          >
-            <div className="text-3xl mb-3">{f.icon}</div>
-            <h3 className="font-bold text-lg mb-1">{f.title}</h3>
-            <p className="text-[#6B6B6B] text-sm">{f.desc}</p>
-          </div>
-        ))}
+      {/* How It Works */}
+      <section className="max-w-3xl mx-auto px-6 pb-20">
+        <div className="text-[#06B6D4] font-bold text-sm mb-8 tracking-wider">
+          HOW IT WORKS
+        </div>
+        <div className="space-y-8">
+          {[
+            {
+              num: "1",
+              title: "Identify",
+              desc: "We pinpoint critical mobility gaps in the city using real-time transit data and community feedback.",
+            },
+            {
+              num: "2",
+              title: "Campaign",
+              desc: "Each project is a 30-day sprint. Support the initiatives that matter most to your daily commute.",
+            },
+            {
+              num: "3",
+              title: "Implement",
+              desc: "Once a campaign reaches its goal, we work with city partners for immediate deployment.",
+            },
+          ].map((step) => (
+            <div key={step.num} className="flex gap-4">
+              <div className="flex-shrink-0 w-12 h-12 border-2 border-[#1E1E1E] rounded-full flex items-center justify-center font-bold text-lg">
+                {step.num}
+              </div>
+              <div>
+                <h3 className="font-bold text-xl mb-2">{step.title}</h3>
+                <p className="text-[#1E1E1E] leading-relaxed">{step.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
 
       {/* Footer */}
       <footer className="border-t-2 border-[#1E1E1E] bg-white py-6 text-center text-sm text-[#6B6B6B]">
-        UrbnLab — community-powered city improvement
+        © URBNLAB 2024
       </footer>
     </div>
   );
