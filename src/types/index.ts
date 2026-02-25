@@ -1,4 +1,4 @@
-// UrbanCat shared TypeScript types
+// UrbanMaps.io shared TypeScript types
 
 export interface Profile {
   id: string;

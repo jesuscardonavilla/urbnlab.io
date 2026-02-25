@@ -73,7 +73,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="border-t-2 border-[#1E1E1E] bg-white py-6 text-center text-sm text-[#6B6B6B]">
-        © URBNLAB 2024
+        © URBANMAPS 2024
       </footer>
     </div>
   );

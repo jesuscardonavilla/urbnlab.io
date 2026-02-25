@@ -41,7 +41,7 @@ export default function Navbar() {
     <nav className="w-full border-b-2 border-[#1E1E1E] bg-white">
       <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
         <Link href="/" className="font-bold text-xl tracking-tight text-[#1E1E1E]">
-          UrbnLab
+          UrbanMaps
         </Link>
         <div className="flex items-center gap-3">
           {!loading && (

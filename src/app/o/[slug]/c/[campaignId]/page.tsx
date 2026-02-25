@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
-import Navbar from "@/components/Navbar";
 import CampaignMapClient from "./CampaignMapClient";
 import type { Campaign, Pin } from "@/types";
 
@@ -63,8 +62,7 @@ export default async function CampaignPage({ params }: Props) {
   }));
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ backgroundColor: "#F6F0EA" }}>
-      <Navbar />
+    <div className="min-h-screen flex flex-col">
       <CampaignMapClient
         campaign={campaign as Campaign}
         pins={pinsWithCounts}

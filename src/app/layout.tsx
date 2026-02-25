@@ -9,7 +9,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "UrbnLab",
+  title: "UrbanMaps",
   description: "Community-powered city improvement platform",
 };
 

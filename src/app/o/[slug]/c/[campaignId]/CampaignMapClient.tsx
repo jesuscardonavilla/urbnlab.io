@@ -17,6 +17,27 @@ interface Props {
 
 const TC = { lat: 44.7631, lng: -85.6206, zoom: 12 };
 
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "JUST NOW";
+  if (mins < 60) return `${mins}M AGO`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}H AGO`;
+  return `${Math.floor(hrs / 24)}D AGO`;
+}
+
+const CATEGORY_SHORT: Record<PinCategory, string> = {
+  crosswalk_needed: "CROSSWALK",
+  sidewalk_ada: "SIDEWALK",
+  bus_stop_needed: "BUS STOP",
+  bike_lane_needed: "BIKE LANE",
+  traffic_signal: "TRAFFIC",
+  street_maintenance: "STREET",
+  tourism_pressure: "TOURISM",
+  climate_stress: "CLIMATE",
+};
+
 export default function CampaignMapClient({ campaign, pins, org, membership }: Props) {
   const router = useRouter();
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -24,12 +45,14 @@ export default function CampaignMapClient({ campaign, pins, org, membership }: P
   const markersRef = useRef<LeafletMarker[]>([]);
 
   const [selectedPin, setSelectedPin] = useState<Pin | null>(null);
-  const [filterCategory, setFilterCategory] = useState<PinCategory | "all">("all");
   const [mapReady, setMapReady] = useState(false);
-  const [categoriesOpen, setCategoriesOpen] = useState(true);
 
   const boundary = campaign.boundary;
   const boundaryGeoJSON = boundary?.geog_json ? JSON.parse(boundary.geog_json) : null;
+
+  const now = new Date();
+  const campaignActive =
+    new Date(campaign.start_at) <= now && now <= new Date(campaign.end_at);
 
   // Init map
   useEffect(() => {
@@ -46,10 +69,10 @@ export default function CampaignMapClient({ campaign, pins, org, membership }: P
         zoomControl: false,
       });
 
-      L.control.zoom({ position: "topleft" }).addTo(map);
+      L.control.zoom({ position: "topright" }).addTo(map);
 
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: '© OpenStreetMap',
+        attribution: "© OpenStreetMap",
         maxZoom: 19,
       }).addTo(map);
 
@@ -66,9 +89,7 @@ export default function CampaignMapClient({ campaign, pins, org, membership }: P
             geometry: { type: "Polygon", coordinates: [worldRing, boundaryRing] } as GeoJSON.Geometry,
             properties: {},
           } as GeoJSON.Feature,
-          {
-            style: { fillColor: "#888888", fillOpacity: 0.45, stroke: false, weight: 0 },
-          }
+          { style: { fillColor: "#888888", fillOpacity: 0.45, stroke: false, weight: 0 } }
         ).addTo(map);
 
         L.geoJSON(boundaryGeoJSON, {
@@ -76,8 +97,7 @@ export default function CampaignMapClient({ campaign, pins, org, membership }: P
         }).addTo(map);
 
         try {
-          const bounds = boundsLayer.getBounds();
-          map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
+          map.fitBounds(boundsLayer.getBounds(), { padding: [40, 40], maxZoom: 16 });
         } catch {}
       }
 
@@ -106,12 +126,7 @@ export default function CampaignMapClient({ campaign, pins, org, membership }: P
       markersRef.current.forEach((m) => m.remove());
       markersRef.current = [];
 
-      const filtered = pins.filter((p) => {
-        if (filterCategory !== "all" && p.category !== filterCategory) return false;
-        return true;
-      });
-
-      filtered.forEach((pin) => {
+      pins.forEach((pin) => {
         const color = CATEGORY_COLORS[pin.category] ?? "#6B6B6B";
         const votes = pin.vote_count ?? 0;
 
@@ -124,194 +139,219 @@ export default function CampaignMapClient({ campaign, pins, org, membership }: P
               border-radius:50% 50% 50% 0;transform:rotate(-45deg);
               cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.2);
             "></div>
-            ${
-              votes > 0
-                ? `<div style="
-                position:absolute;top:-6px;right:-6px;
-                background:white;border:2px solid #1E1E1E;border-radius:999px;
-                font-size:10px;font-weight:bold;padding:0 3px;min-width:16px;
-                text-align:center;color:#1E1E1E;line-height:16px;
-              ">${votes}</div>`
-                : ""
-            }
+            ${votes > 0 ? `<div style="
+              position:absolute;top:-6px;right:-6px;
+              background:white;border:2px solid #1E1E1E;border-radius:999px;
+              font-size:10px;font-weight:bold;padding:0 3px;min-width:16px;
+              text-align:center;color:#1E1E1E;line-height:16px;
+            ">${votes}</div>` : ""}
           </div>`,
           iconSize: [32, 32],
           iconAnchor: [2, 30],
         });
 
         const marker = L.marker([pin.lat, pin.lng], { icon }).addTo(map);
-        marker.on("click", () => setSelectedPin(pin));
+        marker.on("click", () => {
+          setSelectedPin(pin);
+          map.flyTo([pin.lat, pin.lng], 15);
+        });
         markersRef.current.push(marker);
       });
     }
 
     updateMarkers();
     return () => { cancelled = true; };
-  }, [pins, mapReady, filterCategory]);
+  }, [pins, mapReady]);
 
-  const filteredPins = pins.filter((p) => {
-    if (filterCategory !== "all" && p.category !== filterCategory) return false;
-    return true;
-  }).slice(0, 4); // Show recent 4
-
-  const now = new Date();
-  const campaignActive =
-    new Date(campaign.start_at) <= now && now <= new Date(campaign.end_at);
+  // Unique categories present in pins for legend
+  const usedCategories = [...new Set(pins.map((p) => p.category))];
 
   return (
-    <div className="relative w-full" style={{ height: "calc(100vh - 56px)" }}>
-      {/* Header */}
-      <div className="absolute top-0 left-0 right-0 bg-white border-b-2 border-[#1E1E1E] px-6 py-4 z-[1000]">
-        <div className="flex items-center justify-between max-w-7xl mx-auto">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.push(`/o/${org.slug}`)}
-              className="w-10 h-10 border-2 border-[#1E1E1E] rounded-full flex items-center justify-center hover:bg-[#F6F0EA]"
-            >
-              ←
-            </button>
-            <div>
-              <h1 className="font-bold text-xl">{campaign.title}</h1>
-              <p className="text-sm text-[#6B6B6B]">{campaign.description}</p>
+    <div className="flex flex-col" style={{ height: "100vh" }}>
+
+      {/* ── Custom Header ── */}
+      <header className="flex-shrink-0 bg-white border-b-2 border-[#1E1E1E] px-6 h-16 flex items-center justify-between z-[1100]">
+        {/* Left: Logo + campaign info */}
+        <div className="flex items-center gap-4">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="w-9 h-9 bg-[#1E1E1E] rounded-[8px] flex items-center justify-center">
+              <span className="text-white font-bold text-sm">U</span>
             </div>
+            <span className="font-bold text-lg tracking-tight text-[#1E1E1E]">URBANMAPS.IO</span>
+          </Link>
+          <div className="w-px h-8 bg-[#1E1E1E]" />
+          <div>
+            <p className="text-xs text-[#6B6B6B] font-medium uppercase tracking-wider">
+              {campaignActive ? "Active Campaign" : "Campaign"}
+            </p>
+            <p className="font-bold text-[#1E1E1E] leading-tight">{campaign.title}</p>
           </div>
         </div>
-      </div>
 
-      {/* Map */}
-      <div ref={mapContainer} className="absolute inset-0" />
-
-      {/* Category Filter Panel */}
-      <div className="absolute top-24 right-6 bg-white border-2 border-[#1E1E1E] rounded-[16px] overflow-hidden z-[1000] w-72">
-        <button
-          onClick={() => setCategoriesOpen(!categoriesOpen)}
-          className="w-full px-4 py-3 font-bold text-sm text-left border-b-2 border-[#1E1E1E] hover:bg-[#F6F0EA] flex items-center justify-between"
-        >
-          <span className="text-[#6B6B6B] uppercase tracking-wider">CATEGORIES</span>
-          <span>{categoriesOpen ? "−" : "+"}</span>
-        </button>
-        {categoriesOpen && (
-          <div className="p-2">
-            <button
-              onClick={() => setFilterCategory("all")}
-              className={`w-full text-left px-3 py-2 rounded-[12px] text-sm font-medium mb-1 flex items-center gap-2 ${
-                filterCategory === "all"
-                  ? "bg-[#06B6D4] text-[#1E1E1E]"
-                  : "hover:bg-[#F6F0EA]"
-              }`}
-            >
-              All Issues
-            </button>
-            {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
-              <button
-                key={key}
-                onClick={() => setFilterCategory(key as PinCategory)}
-                className={`w-full text-left px-3 py-2 rounded-[12px] text-sm font-medium mb-1 flex items-center gap-2 ${
-                  filterCategory === key
-                    ? "bg-[#06B6D4] text-[#1E1E1E]"
-                    : "hover:bg-[#F6F0EA]"
-                }`}
-              >
-                <div
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: CATEGORY_COLORS[key as PinCategory] }}
-                />
-                {label}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Recent Reports Panel */}
-      <div className="absolute top-24 left-6 bg-white border-2 border-[#1E1E1E] rounded-[16px] overflow-hidden z-[1000] w-80">
-        <div className="px-4 py-3 border-b-2 border-[#1E1E1E]">
-          <span className="text-[#6B6B6B] font-bold text-sm uppercase tracking-wider">
-            RECENT REPORTS
-          </span>
+        {/* Right: Nav links + avatar */}
+        <div className="flex items-center gap-6">
+          <Link
+            href={`/o/${org.slug}`}
+            className="text-sm font-bold text-[#1E1E1E] hover:text-[#06B6D4] transition-colors tracking-wider"
+          >
+            EXPLORE
+          </Link>
+          <button className="text-sm font-bold text-[#6B6B6B] hover:text-[#1E1E1E] transition-colors tracking-wider">
+            STATS
+          </button>
+          <button className="text-sm font-bold text-[#6B6B6B] hover:text-[#1E1E1E] transition-colors tracking-wider">
+            ABOUT
+          </button>
+          <div className="w-9 h-9 rounded-full bg-[#F6C8B8] border-2 border-[#1E1E1E]" />
         </div>
-        <div className="max-h-96 overflow-y-auto">
-          {filteredPins.length === 0 ? (
-            <div className="p-6 text-center text-[#6B6B6B] text-sm">
-              No reports yet
+      </header>
+
+      {/* ── Main: Map + Sidebar ── */}
+      <div className="flex flex-1 overflow-hidden">
+
+        {/* Map */}
+        <div className="relative flex-1">
+          <div ref={mapContainer} className="absolute inset-0" />
+
+          {/* Legend */}
+          {usedCategories.length > 0 && (
+            <div className="absolute bottom-20 left-4 bg-white border-2 border-[#1E1E1E] rounded-[12px] px-4 py-3 z-[1000]">
+              <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+                {usedCategories.map((cat) => (
+                  <div key={cat} className="flex items-center gap-2">
+                    <div
+                      className="w-3 h-3 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: CATEGORY_COLORS[cat] }}
+                    />
+                    <span className="text-xs font-bold text-[#1E1E1E]">
+                      {CATEGORY_SHORT[cat] ?? cat.toUpperCase()}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
-          ) : (
-            filteredPins.map((pin) => (
-              <button
-                key={pin.id}
-                onClick={() => {
-                  setSelectedPin(pin);
-                  mapRef.current?.flyTo([pin.lat, pin.lng], 15);
-                }}
-                className="w-full px-4 py-3 border-b border-[#E5E5E5] hover:bg-[#F6F0EA] text-left flex items-center gap-3"
-              >
-                <div
-                  className="w-4 h-4 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: CATEGORY_COLORS[pin.category] }}
-                />
-                <span className="font-medium text-sm truncate">{pin.title}</span>
-              </button>
-            ))
+          )}
+
+          {/* PIN A NEW ISSUE button */}
+          {campaignActive && membership && (
+            <Link
+              href={`/o/${org.slug}/c/${campaign.id}/add`}
+              className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-2 px-6 py-3 bg-[#1E1E1E] text-white rounded-full font-bold text-sm hover:bg-[#333] transition-all shadow-lg"
+            >
+              <span className="text-lg">📍</span>
+              PIN A NEW ISSUE
+            </Link>
+          )}
+
+          {/* Pin detail popup */}
+          {selectedPin && (
+            <div className="absolute bottom-0 left-0 right-0 z-[1001] bg-white border-t-2 border-[#1E1E1E] shadow-lg">
+              <div className="max-w-2xl mx-auto p-5 flex items-start gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span
+                      className="text-xs font-bold px-2 py-0.5 rounded text-white"
+                      style={{ backgroundColor: CATEGORY_COLORS[selectedPin.category] }}
+                    >
+                      {CATEGORY_SHORT[selectedPin.category]}
+                    </span>
+                  </div>
+                  <h3 className="text-lg font-bold mb-1">{selectedPin.title}</h3>
+                  <p className="text-sm text-[#6B6B6B] line-clamp-2">{selectedPin.description}</p>
+                </div>
+                {selectedPin.photo_url && (
+                  <img
+                    src={selectedPin.photo_url}
+                    alt={selectedPin.title}
+                    className="w-20 h-20 rounded-[10px] border-2 border-[#1E1E1E] object-cover"
+                  />
+                )}
+                <div className="flex flex-col gap-2">
+                  <Link
+                    href={`/o/${org.slug}/c/${campaign.id}/pin/${selectedPin.id}`}
+                    className="px-4 py-2 bg-[#06B6D4] border-2 border-[#1E1E1E] rounded-[12px] font-bold text-sm text-[#1E1E1E] hover:bg-[#0891B2] transition-all whitespace-nowrap"
+                  >
+                    VIEW DETAILS
+                  </Link>
+                  <button
+                    onClick={() => setSelectedPin(null)}
+                    className="px-4 py-2 border-2 border-[#1E1E1E] rounded-[12px] font-bold text-sm text-[#1E1E1E] hover:bg-[#F6F0EA] transition-all"
+                  >
+                    CLOSE
+                  </button>
+                </div>
+              </div>
+            </div>
           )}
         </div>
-      </div>
 
-      {/* MAP AN ISSUE Button */}
-      {campaignActive && membership && (
-        <Link
-          href={`/o/${org.slug}/c/${campaign.id}/add`}
-          className="absolute bottom-8 right-6 z-[1000] px-8 py-4 bg-[#06B6D4] border-2 border-[#1E1E1E] rounded-[16px] font-bold text-[#1E1E1E] hover:bg-[#0891B2] transition-all text-lg flex items-center gap-2 shadow-lg"
-        >
-          <span className="text-2xl">+</span>
-          MAP AN ISSUE
-        </Link>
-      )}
+        {/* ── Sidebar ── */}
+        <div className="w-80 flex-shrink-0 flex flex-col bg-[#1E1E1E]">
+          {/* Sidebar header */}
+          <div className="px-5 py-4 border-b border-[#333]">
+            <h2 className="text-white font-bold text-base tracking-wider">RECENT ACTIVITY</h2>
+            <p className="text-[#6B6B6B] text-xs mt-0.5">Real-time mobility reports</p>
+          </div>
 
-      {/* Pin Detail Popup */}
-      {selectedPin && (
-        <div className="absolute bottom-0 left-0 right-0 z-[1001] bg-white border-t-2 border-[#1E1E1E] shadow-lg">
-          <div className="max-w-4xl mx-auto p-6">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <div
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: CATEGORY_COLORS[selectedPin.category] }}
-                  />
-                  <span className="text-sm font-medium text-[#6B6B6B]">
-                    {CATEGORY_LABELS[selectedPin.category]}
-                  </span>
-                </div>
-                <h3 className="text-xl font-bold mb-2">{selectedPin.title}</h3>
-                <p className="text-sm text-[#6B6B6B] line-clamp-2">
-                  {selectedPin.description}
-                </p>
-              </div>
-              {selectedPin.photo_url && (
-                <img
-                  src={selectedPin.photo_url}
-                  alt={selectedPin.title}
-                  className="w-24 h-24 rounded-[12px] border-2 border-[#1E1E1E] object-cover ml-4"
-                />
-              )}
-            </div>
-            <div className="flex items-center gap-3">
-              <Link
-                href={`/o/${org.slug}/c/${campaign.id}/pin/${selectedPin.id}`}
-                className="flex-1 text-center px-6 py-3 bg-[#06B6D4] border-2 border-[#1E1E1E] rounded-[16px] font-bold text-[#1E1E1E] hover:bg-[#0891B2] transition-all"
-              >
-                VIEW DETAILS
-              </Link>
-              <button
-                onClick={() => setSelectedPin(null)}
-                className="px-6 py-3 border-2 border-[#1E1E1E] rounded-[16px] font-bold text-[#1E1E1E] hover:bg-[#F6F0EA] transition-all"
-              >
-                CLOSE
-              </button>
-            </div>
+          {/* Pin cards */}
+          <div className="flex-1 overflow-y-auto py-3 px-3 space-y-3">
+            {pins.length === 0 ? (
+              <p className="text-[#6B6B6B] text-sm text-center py-8">No reports yet</p>
+            ) : (
+              pins.slice(0, 20).map((pin) => (
+                <button
+                  key={pin.id}
+                  onClick={() => {
+                    setSelectedPin(pin);
+                    mapRef.current?.flyTo([pin.lat, pin.lng], 15);
+                  }}
+                  className="w-full text-left bg-white border-2 border-[#1E1E1E] rounded-[12px] p-3 hover:bg-[#F6F0EA] transition-colors"
+                >
+                  <div className="flex gap-3">
+                    {/* Thumbnail */}
+                    <div className="w-12 h-12 rounded-[8px] bg-[#E5E5E5] flex-shrink-0 overflow-hidden border border-[#DDD]">
+                      {pin.photo_url ? (
+                        <img src={pin.photo_url} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div
+                          className="w-full h-full opacity-40"
+                          style={{ backgroundColor: CATEGORY_COLORS[pin.category] }}
+                        />
+                      )}
+                    </div>
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-1 mb-1">
+                        <span
+                          className="text-[10px] font-bold px-1.5 py-0.5 rounded text-white leading-tight"
+                          style={{ backgroundColor: CATEGORY_COLORS[pin.category] }}
+                        >
+                          {CATEGORY_SHORT[pin.category]}
+                        </span>
+                        <span className="text-[10px] text-[#6B6B6B] font-medium flex-shrink-0">
+                          {timeAgo(pin.created_at)}
+                        </span>
+                      </div>
+                      <p className="font-bold text-sm text-[#1E1E1E] truncate">{pin.title}</p>
+                      {pin.description && (
+                        <p className="text-[11px] text-[#6B6B6B] italic line-clamp-2 mt-0.5">
+                          &ldquo;{pin.description}&rdquo;
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+
+          {/* Total reports footer */}
+          <div className="px-5 py-4 border-t border-[#333] flex items-center justify-between">
+            <span className="text-[#6B6B6B] text-xs font-bold tracking-wider uppercase">Total Reports</span>
+            <span className="text-white font-bold text-lg">{pins.length.toLocaleString()}</span>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

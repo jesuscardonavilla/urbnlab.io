@@ -53,7 +53,7 @@ export default function BoundaryForm({ orgId, boundary, onSave, onCancel }: Prop
       )}&format=json&polygon_geojson=1&limit=5&featuretype=settlement`;
 
       const res = await fetch(url, {
-        headers: { "Accept-Language": "en", "User-Agent": "UrbnLab/1.0" },
+        headers: { "Accept-Language": "en", "User-Agent": "UrbanMaps/1.0" },
       });
       const data: NominatimResult[] = await res.json();
 

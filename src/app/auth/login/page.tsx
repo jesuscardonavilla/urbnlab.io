@@ -74,7 +74,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: "#F6F0EA" }}>
       <div className="bg-white border-2 border-[#1E1E1E] rounded-[22px] p-8 max-w-sm w-full">
         <div className="mb-6">
-          <Link href="/" className="font-bold text-xl text-[#1E1E1E]">UrbnLab</Link>
+          <Link href="/" className="font-bold text-xl text-[#1E1E1E]">UrbanMaps</Link>
         </div>
 
         <h1 className="text-2xl font-bold mb-4">Sign in</h1>

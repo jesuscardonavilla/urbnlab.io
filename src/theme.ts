@@ -1,4 +1,4 @@
-// UrbnLab Brand Theme
+// UrbanMaps Brand Theme
 export const theme = {
   colors: {
     // Primary
