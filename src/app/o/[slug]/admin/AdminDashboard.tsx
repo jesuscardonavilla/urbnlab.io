@@ -5,6 +5,10 @@ import Link from "next/link";
 import type { Map as LeafletMap } from "leaflet";
 import type { Boundary, Campaign, Pin, Comment } from "@/types";
 import { CATEGORY_COLORS, CATEGORY_LABELS, STATUS_LABELS } from "@/types";
+import AdminMapTab from "./AdminMapTab";
+import AdminReportsTab from "./AdminReportsTab";
+import AdminCampaignsTab from "./AdminCampaignsTab";
+import AdminMembersTab from "./AdminMembersTab";
 
 type NavTab = "overview" | "map" | "reports" | "campaigns" | "members";
 
@@ -443,8 +447,8 @@ export default function AdminDashboard({
           </div>
         </header>
 
-        {/* Content */}
-        <main className="flex-1 overflow-y-auto">
+        {/* Content — map tab needs overflow-hidden, others scroll */}
+        <main className={`flex-1 ${activeTab === "map" || activeTab === "reports" ? "overflow-hidden" : "overflow-y-auto"}`}>
           {activeTab === "overview" && (
             <OverviewTab
               pins={pins}
@@ -459,51 +463,37 @@ export default function AdminDashboard({
           )}
 
           {activeTab === "map" && (
-            <div className="flex flex-col items-center justify-center h-full gap-4">
-              <div className="w-16 h-16 bg-[#1E1E1E] rounded-[16px] flex items-center justify-center text-3xl">
-                🗺️
-              </div>
-              <p className="text-xl font-bold text-[#1E1E1E]">Map View</p>
-              <p className="text-[#6B6B6B] text-sm">
-                Coming next — interactive admin map with pin moderation.
-              </p>
-            </div>
+            <AdminMapTab
+              pins={pins}
+              boundaries={boundaries}
+              org={org}
+              userId={userId}
+            />
           )}
 
           {activeTab === "reports" && (
-            <div className="flex flex-col items-center justify-center h-full gap-4">
-              <div className="w-16 h-16 bg-[#1E1E1E] rounded-[16px] flex items-center justify-center text-3xl">
-                📋
-              </div>
-              <p className="text-xl font-bold text-[#1E1E1E]">Reports Management</p>
-              <p className="text-[#6B6B6B] text-sm">
-                Coming next — full reports table with filters and assignment.
-              </p>
-            </div>
+            <AdminReportsTab
+              pins={pins}
+              org={org}
+              userId={userId}
+            />
           )}
 
           {activeTab === "campaigns" && (
-            <div className="flex flex-col items-center justify-center h-full gap-4">
-              <div className="w-16 h-16 bg-[#1E1E1E] rounded-[16px] flex items-center justify-center text-3xl">
-                📢
-              </div>
-              <p className="text-xl font-bold text-[#1E1E1E]">Campaigns</p>
-              <p className="text-[#6B6B6B] text-sm">
-                Coming next — campaign management and creation flow.
-              </p>
-            </div>
+            <AdminCampaignsTab
+              campaigns={campaigns}
+              boundaries={boundaries}
+              org={org}
+              userId={userId}
+            />
           )}
 
           {activeTab === "members" && (
-            <div className="flex flex-col items-center justify-center h-full gap-4">
-              <div className="w-16 h-16 bg-[#1E1E1E] rounded-[16px] flex items-center justify-center text-3xl">
-                👥
-              </div>
-              <p className="text-xl font-bold text-[#1E1E1E]">Members</p>
-              <p className="text-[#6B6B6B] text-sm">
-                Coming next — member list and role management.
-              </p>
-            </div>
+            <AdminMembersTab
+              members={members}
+              org={org}
+              userId={userId}
+            />
           )}
         </main>
       </div>
