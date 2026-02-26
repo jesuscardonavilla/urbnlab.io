@@ -485,6 +485,7 @@ export default function AdminDashboard({
               boundaries={boundaries}
               org={org}
               userId={userId}
+              pins={pins}
             />
           )}
 

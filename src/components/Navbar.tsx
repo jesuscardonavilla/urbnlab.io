@@ -6,7 +6,6 @@ import type { User } from "@supabase/supabase-js";
 
 export default function Navbar() {
   const [user, setUser] = useState<User | null>(null);
-  const [adminSlug, setAdminSlug] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -17,27 +16,12 @@ export default function Navbar() {
       const supabase = createClient();
       const { data } = await supabase.auth.getUser();
       setUser(data.user);
-
-      if (data.user) {
-        const { data: membership } = await supabase
-          .from("org_memberships")
-          .select("role, org:orgs(slug)")
-          .eq("user_id", data.user.id)
-          .eq("role", "admin")
-          .maybeSingle();
-        if (membership?.org) {
-          const org = membership.org as unknown as { slug: string };
-          setAdminSlug(org.slug ?? null);
-        }
-      }
-
       setLoading(false);
 
       const {
         data: { subscription },
       } = supabase.auth.onAuthStateChange((_, session) => {
         setUser(session?.user ?? null);
-        if (!session) setAdminSlug(null);
       });
       unsubscribe = () => subscription.unsubscribe();
     }
@@ -64,18 +48,12 @@ export default function Navbar() {
             <>
               {user ? (
                 <>
-                  {adminSlug ? (
-                    <Link
-                      href={`/o/${adminSlug}/admin`}
-                      className="text-sm text-[#06B6D4] font-medium hidden sm:block truncate max-w-[180px] hover:underline"
-                    >
-                      {user.email}
-                    </Link>
-                  ) : (
-                    <span className="text-sm text-[#6B6B6B] hidden sm:block truncate max-w-[180px]">
-                      {user.email}
-                    </span>
-                  )}
+                  <Link
+                    href="/admin"
+                    className="text-sm text-[#06B6D4] font-medium hidden sm:block truncate max-w-[180px] hover:underline"
+                  >
+                    {user.email}
+                  </Link>
                   <button
                     onClick={signOut}
                     className="text-sm px-3 py-1.5 border-2 border-[#1E1E1E] rounded-[16px] hover:bg-[#F6F0EA] transition-colors cursor-pointer"
